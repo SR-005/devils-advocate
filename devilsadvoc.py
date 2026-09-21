@@ -2,10 +2,11 @@ import os
 from dotenv import load_dotenv
 
 from langchain_google_genai import ChatGoogleGenerativeAI
-from langchain_core.prompts import ChatPromptTemplate
 
 from langchain_core.tools import tool
 from langchain.agents import create_agent
+from langchain_core.messages import HumanMessage
+from langgraph.checkpoint.memory import MemorySaver
 
 from ddgs import DDGS
 
@@ -36,25 +37,36 @@ prompt="""You are an analytical Red Team Agent and ruthless Devil's Advocate.
     3. Synthesize the findings into a clear, sharp, evidence-backed counterargument. Citing specific stats or facts discovered during your search is mandatory."""
 
 #this tells the gemini ai what all tools are available and will be attached to our prompts
-devilagent=create_agent(model=llm, tools=tools, system_prompt=prompt)
+devilagent=create_agent(model=llm, 
+                        tools=tools, 
+                        checkpointer=MemorySaver(),         #for memory management
+                        system_prompt=prompt)
 
 
 if __name__=="__main__":
+
+    threadconfig={"configurable": {"thread_id": "1"}}        #creating the session thread for memory management
+
     print("--------Devils Advocate--------")
 
-    #the statement ai will oppose
-    thesis="Python is strictly the best programming language for all backend development."
-    print(f"User Claim: {thesis}\n")
+    while True:
+        #the statement ai will oppose
+        userinput=input("You: ").strip()
 
-    result=devilagent.invoke({
-        "messages":[{
-            "role": "user",
-            "content": thesis
-        }],
-    })
+        if not userinput:
+            continue
+        if userinput.lower() in ["exit","quit","q"]:            #chatbot look break logic
+            break
 
-    print("\n--- Counterargument ---")
-    response=result["messages"][-1].content
-    response=response[0]["text"] if isinstance(response,list) else response   #extract clean text from response if it is a list, else return same
-    print(response)
+        print(f"User Claim: {userinput}\n")
+
+        result=devilagent.invoke({
+            "messages":[HumanMessage(content=userinput)],
+        },
+        config=threadconfig)  
+
+        print("\n--- Counterargument ---")
+        response=result["messages"][-1].content
+        response=response[0]["text"] if isinstance(response,list) else response   #extract clean text from response if it is a list, else return same
+        print(response)
 
