@@ -1,18 +1,20 @@
 import os
 from dotenv import load_dotenv
+
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_core.prompts import ChatPromptTemplate
+
 from langchain_core.tools import tool
 from langchain.agents import create_agent
 
-from duckduckgo_search import DDGS
+from ddgs import DDGS
 
 
 load_dotenv()
 
 llm=ChatGoogleGenerativeAI(model="gemini-flash-lite-latest", temperature=0.2)
 
-@tool       #a decorator: 
+@tool  
 def searchweb(query: str) -> str:
     #this is a docstring. It will be read by langchain inorder to understand about what this tool does
     """Search the web for counterarguments, research papers, statistics or criticisms opposing a claim """     
@@ -52,6 +54,7 @@ if __name__=="__main__":
     })
 
     print("\n--- Counterargument ---")
-    print(result["messages"][-1].content)
-
+    response=result["messages"][-1].content
+    response=response[0]["text"] if isinstance(response,list) else response   #extract clean text from response if it is a list, else return same
+    print(response)
 
