@@ -57,7 +57,7 @@ class ChatRequest(BaseModel):
 async def chat(payload: ChatRequest):
     threadconfig={"configurable": {"thread_id": "1"}}        #creating the session thread for memory management
     result=devilagent.invoke({
-                "messages":[HumanMessage(content=userinput)],
+                "messages":[HumanMessage(content=payload.message)],
             },
             config=threadconfig) 
     response=result["messages"][-1].content
