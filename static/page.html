@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Devil's Advocate | Red Team Agent</title>
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <style>
+    :root {
+      --bg: #0f1117;
+      --card-bg: #1a1d24;
+      --border: #2e3440;
+      --text: #e5e9f0;
+      --text-muted: #88c0d0;
+      --accent: #bf616a;
+      --accent-glow: rgba(191, 97, 106, 0.25);
+      --user-bubble: #2e3440;
+      --agent-bubble: #242933;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background-color: var(--bg);
+      color: var(--text);
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+    }
+
+    header {
+      padding: 1rem 1.5rem;
+      border-bottom: 1px solid var(--border);
+      background-color: var(--card-bg);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    header h1 {
+      font-size: 1.15rem;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    header button {
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 0.4rem 0.8rem;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 0.85rem;
+      transition: background 0.2s;
+    }
+
+    header button:hover {
+      background: var(--border);
+    }
+
+    #chat-container {
+      flex: 1;
+      overflow-y: auto;
+      padding: 1.5rem;
+      display: flex;
+      flex-direction: column;
+      gap: 1.25rem;
+      max-width: 850px;
+      width: 100%;
+      margin: 0 auto;
+    }
+
+    .message {
+      max-width: 80%;
+      padding: 1rem 1.25rem;
+      border-radius: 12px;
+      line-height: 1.6;
+      font-size: 0.95rem;
+    }
+
+    .user {
+      align-self: flex-end;
+      background-color: var(--user-bubble);
+      border: 1px solid var(--border);
+      border-bottom-right-radius: 2px;
+    }
+
+    .assistant {
+      align-self: flex-start;
+      background-color: var(--agent-bubble);
+      border-left: 3px solid var(--accent);
+      border-bottom-left-radius: 2px;
+    }
+
+    .assistant h1, .assistant h2, .assistant h3 {
+      margin-top: 0.75rem;
+      margin-bottom: 0.25rem;
+      font-size: 1.05rem;
+      color: var(--text-muted);
+    }
+
+    .assistant ul, .assistant ol {
+      margin-left: 1.25rem;
+      margin-top: 0.5rem;
+      margin-bottom: 0.5rem;
+    }
+
+    .assistant p { margin-bottom: 0.5rem; }
+
+    #input-area {
+      padding: 1rem 1.5rem;
+      background-color: var(--card-bg);
+      border-top: 1px solid var(--border);
+    }
+
+    #form {
+      max-width: 850px;
+      margin: 0 auto;
+      display: flex;
+      gap: 0.75rem;
+    }
+
+    input[type="text"] {
+      flex: 1;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      padding: 0.75rem 1rem;
+      border-radius: 8px;
+      color: var(--text);
+      font-size: 0.95rem;
+      outline: none;
+    }
+
+    input[type="text"]:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 2px var(--accent-glow);
+    }
+
+    button[type="submit"] {
+      background-color: var(--accent);
+      border: none;
+      color: white;
+      padding: 0 1.25rem;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: 600;
+      transition: opacity 0.2s;
+    }
+
+    button[type="submit"]:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <h1><span></span> Devil's Advocate</h1>
+    <button id="reset-btn">Reset Debate</button>
+  </header>
+
+  <div id="chat-container">
+    <div class="message assistant">
+      Present any technical assumption, architecture design, or claim. I will locate counter-evidence and challenge it.
+    </div>
+  </div>
+
+  <div id="input-area">
+    <form id="form">
+      <input type="text" id="user-input" placeholder="e.g. Microservices are strictly superior to monoliths..." autocomplete="off" required />
+      <button type="submit" id="send-btn">Challenge</button>
+    </form>
+  </div>
+
+  <script>
+    let threadId = "web_" + Math.random().toString(36).substring(2, 9);
+    const chatContainer = document.getElementById("chat-container");
+    const form = document.getElementById("form");
+    const input = document.getElementById("user-input");
+    const sendBtn = document.getElementById("send-btn");
+    const resetBtn = document.getElementById("reset-btn");
+
+    function appendMessage(role, text) {
+      const msgDiv = document.createElement("div");
+      msgDiv.className = `message ${role}`;
+      msgDiv.innerHTML = role === "assistant" ? marked.parse(text) : text;
+      chatContainer.appendChild(msgDiv);
+      chatContainer.scrollTop = chatContainer.scrollHeight;
+      return msgDiv;
+    }
+
+    resetBtn.addEventListener("click", () => {
+      threadId = "web_" + Math.random().toString(36).substring(2, 9);
+      chatContainer.innerHTML = `
+        <div class="message assistant">
+          New session started. State a new claim to challenge.
+        </div>`;
+    });
+
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const text = input.value.trim();
+      if (!text) return;
+
+      appendMessage("user", text);
+      input.value = "";
+      input.disabled = true;
+      sendBtn.disabled = true;
+
+      const loadingMsg = appendMessage("assistant", "*Searching the web and preparing counterargument...*");
+
+      try {
+        const response = await fetch("/api/chat", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ message: text, threadid: threadId })
+        });
+
+        const data = await response.json();
+        loadingMsg.innerHTML = marked.parse(data.reply);
+      } catch (err) {
+        loadingMsg.innerHTML = "*Failed to generate response. Check server logs.*";
+      } finally {
+        input.disabled = false;
+        sendBtn.disabled = false;
+        input.focus();
+        chatContainer.scrollTop = chatContainer.scrollHeight;
+      }
+    });
+  </script>
+</body>
+</html>
